@@ -5,7 +5,7 @@
 # terms of the three-clause BSD license. See LICENSE.txt
 # (located in root directory of this project) for details.
 
-# Label a block of test code with some name.
+# Label all tests within a block.
 def group name
   Tet.in_group(name) { yield }
 end
