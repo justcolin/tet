@@ -8,7 +8,7 @@
 require_relative './tet'
 
 puts 'EXPECTED Results:'
-puts '....F!F!FFF.......F.F.F.'
+puts '.....F!F!FF.F......F.F.F.'
 puts 'ACTUAL Results:'
 
 group 'Passing' do
@@ -32,27 +32,31 @@ group 'Passing' do
     group 'allows you to specify an exception class' do
       err(NameError) { not_a_method }
     end
+
+    group 'allows you to specify a parent exception class' do
+      err(Exception) { not_a_method }
+    end
   end
 end
 
 group 'Failing' do
   group '#assert' do
-    group 'errors are caught and count as failures' do
-      assert { not_a_method }
-    end
-
     group 'falsy blocks fail' do
       assert { nil }
+    end
+
+    group 'errors are caught and count as failures' do
+      assert { not_a_method }
     end
   end
 
   group '#deny' do
-    group 'errors are caught and count as failures' do
-      deny { not_a_method }
-    end
-
     group 'truthy blocks fail' do
       deny { 'this is truthy' }
+    end
+
+    group 'errors are caught and count as failures' do
+      deny { not_a_method }
     end
   end
 
@@ -75,7 +79,7 @@ group 'Output' do
       end
     end
 
-    group 'fails to see what giving a Class as name looks like' do
+    group 'this test fails to see what giving a Class as name looks like' do
       group String do
         assert { false }
       end
@@ -107,7 +111,7 @@ group 'Output' do
 
     group '#err' do
       assert do
-        output_is_a?(TrueClass) { err {this_passes} }
+        output_is_a?(TrueClass) { err {not_a_method} }
       end
     end
   end
