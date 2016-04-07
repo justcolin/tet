@@ -5,6 +5,13 @@
 # terms of the three-clause BSD license. See LICENSE.txt
 # (located in root directory of this project) for details.
 
+# Label a block of test code with some name.
+def group name
+  Tet.in_group(name) { yield }
+end
+
+# Declare that a block will return a truthy value.
+# If it doesn't or if it has an error, the assertion will be logged as failing.
 def assert
   result = false
 
@@ -23,12 +30,14 @@ def assert
   !!result
 end
 
-
+# Declare that a block will return a falsy value.
+# If it doesn't or if it has an error, the assertion will be logged as failing.
 def deny
   assert { !yield }
 end
 
-
+# Declare that a block will have an error.
+# If it doesn't the assertion will be logged as failing.
 def err expect = StandardError
   result = false
 
@@ -47,12 +56,7 @@ def err expect = StandardError
   result
 end
 
-
-def group name
-  Tet.in_group(name) { yield }
-end
-
-
+# A namespace for all of the helper methods.
 module Tet
   @current_group = []
   @fail_messeges = []
@@ -64,12 +68,14 @@ module Tet
       yield.tap { @current_group.pop }
     end
 
+    # Log a passing assertion.
     def pass
       print '.'
 
       @total_asserts +=1
     end
 
+    # Log a failing assertion.
     def fail *messeges, letter: 'F'
       print letter
 
@@ -77,14 +83,17 @@ module Tet
       @fail_messeges << [@current_group.join('  :  '), *messeges].join("\n")
     end
 
+    # Log an assertion error.
     def error error
       fail format_error(error), letter: '!'
     end
 
+    # Log an assertion which should have had an error.
     def no_error
       fail indent("EXPECTED AN ERROR", 1)
     end
 
+    # Log an assertion which had the wrong error.
     def wrong_error expected:, got:
       fail indent("EXPECTED: #{expected}", 1),
            format_error(got)
@@ -102,6 +111,7 @@ module Tet
     end
   end
 
+  # Print messages for all the failing assertions.
   at_exit do
     puts "\n" unless @total_asserts.zero?
     puts "#{@fail_messeges.size} out of #{@total_asserts} failed"
