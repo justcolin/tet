@@ -43,7 +43,7 @@ def err expect = StandardError
 
   begin
     yield
-    Tet.no_error
+    Tet.fail
   rescue StandardError => error
     if expect >= error.class
       result = true
@@ -89,11 +89,6 @@ module Tet
       fail format_error(error), letter: '!'
     end
 
-    # Log an assertion which should have had an error.
-    def no_error
-      fail indent("EXPECTED AN ERROR", 1)
-    end
-
     # Log an assertion which had the wrong error.
     def wrong_error expected:, got:
       fail indent("EXPECTED: #{expected}", 1),
@@ -104,7 +99,8 @@ module Tet
 
     def format_error error
       indent("ERROR: (#{error.class}) #{error.message}", 1) +
-      indent(error.backtrace.join("\n"), 2)
+        "\n" +
+        indent(error.backtrace.join("\n"), 2)
     end
 
     def indent string, amount = 0
