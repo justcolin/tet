@@ -25,23 +25,17 @@ group 'Passing' do
   end
 
   group '#err' do
-    group 'errs pass when there is an error' do
+    group 'passes when there is an error' do
       err { not_a_method }
     end
 
-    group 'err allows you to specify an exception class' do
+    group 'allows you to specify an exception class' do
       err(NameError) { not_a_method }
     end
   end
 end
 
 group 'Failing' do
-  group String do
-    group 'fails to see what giving a class as a group name looks like' do
-      assert { false }
-    end
-  end
-
   group '#assert' do
     group 'errors are caught and count as failures' do
       assert { not_a_method }
@@ -63,7 +57,7 @@ group 'Failing' do
   end
 
   group '#err' do
-    group 'fails without an error' do
+    group 'fails when there is no error' do
       err { 1 + 1 }
     end
 
@@ -74,12 +68,22 @@ group 'Failing' do
 end
 
 group 'Output' do
-  group '#group returns output of block' do
-    assert do
-      group('EXAMPLE') {'example ouput'} == 'example ouput'
+  group '#group' do
+    group 'returns output of block' do
+      assert do
+        group('EXAMPLE') {'example ouput'} == 'example ouput'
+      end
+    end
+
+    group 'fails to see what giving a Class as name looks like' do
+      group String do
+        assert { false }
+      end
     end
   end
 
+  # Ensure that the output of the given block is nil if there is an error.
+  # Wraps the block in a group to label it as an example instead of a real test.
   def output_of
     result = nil
 
