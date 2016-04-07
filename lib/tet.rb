@@ -63,6 +63,7 @@ module Tet
   @total_asserts = 0
 
   class << self
+    # Store the group name for the duration of calling the given block.
     def in_group name
       @current_group.push(name)
       yield.tap { @current_group.pop }
