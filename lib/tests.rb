@@ -82,32 +82,32 @@ group 'Output' do
     end
   end
 
-  # Ensure that the output of the given block is nil if there is an error.
+  # Test if the output of a block is a given Class.
   # Wraps the block in a group to label it as an example instead of a real test.
-  def output_of
+  def output_is_a? klass
     result = nil
 
     group('EXAMPLE') { result = yield }
 
-    result
+    result.is_a?(klass)
   end
 
   group 'passing returns true' do
     group '#assert' do
       assert do
-        output_of { assert {"this passes"} }.is_a? TrueClass
+        output_is_a?(TrueClass) { assert {"this passes"} }
       end
     end
 
     group '#deny' do
       assert do
-        output_of { deny {nil} }.is_a? TrueClass
+        output_is_a?(TrueClass) { deny {nil} }
       end
     end
 
     group '#err' do
       assert do
-        output_of { err {this_passes} }.is_a? TrueClass
+        output_is_a?(TrueClass) { err {this_passes} }
       end
     end
   end
@@ -115,19 +115,19 @@ group 'Output' do
   group 'failing returns false' do
     group '#assert' do
       assert do
-        output_of { assert {nil} }.is_a? FalseClass
+        output_is_a?(FalseClass) { assert {nil} }
       end
     end
 
     group '#deny' do
       assert do
-        output_of { deny {"this fails"} }.is_a? FalseClass
+        output_is_a?(FalseClass) { deny {"this fails"} }
       end
     end
 
     group '#err' do
       assert do
-        output_of { err {"this fails"} }.is_a? FalseClass
+        output_is_a?(FalseClass) { err {"this fails"} }
       end
     end
   end
