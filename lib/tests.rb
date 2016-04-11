@@ -9,7 +9,8 @@ require_relative './tet'
 
 puts 'EXPECTED Results:'
 puts '.....F!F!FF.F......F.F.F.!'
-puts 'ACTUAL Results:'
+puts '11 out of 26 failed'
+puts "\nACTUAL Results:"
 
 group 'Passing' do
   group '#assert' do

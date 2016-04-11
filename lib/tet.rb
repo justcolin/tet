@@ -61,6 +61,7 @@ module Tet
   @current_group = []
   @fail_messeges = []
   @total_asserts = 0
+  @total_fails   = 0
 
   class << self
     # Store the group name for the duration of calling the given block.
@@ -80,7 +81,8 @@ module Tet
     def fail *messeges, letter: 'F'
       print letter
 
-      @total_asserts +=1
+      @total_asserts += 1
+      @total_fails   += 1
       @fail_messeges << @current_group.join('  :  ') << messeges
     end
 
@@ -118,7 +120,7 @@ module Tet
   # Print messages for all the failing assertions.
   at_exit do
     puts "\n" unless @total_asserts.zero?
-    puts "#{@fail_messeges.size} out of #{@total_asserts} failed"
+    puts "#{@total_fails} out of #{@total_asserts} failed"
     puts indent(@fail_messeges)
   end
 end
