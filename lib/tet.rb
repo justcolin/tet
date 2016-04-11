@@ -97,13 +97,16 @@ module Tet
     private
 
     def format_error error
-      ["ERROR: (#{error.class}) #{error.message}", error.backtrace]
+      [
+        "ERROR: #{error.class}",
+        ["#{error.message}", error.backtrace]
+      ]
     end
 
     def indent input, amount = 0
       case input
       when String
-        ('    ' * amount) + input
+        input.gsub(/^/, '  ' * amount)
       when Array
         input.reject(&:empty?)
              .map { |part| indent(part, amount + 1) }

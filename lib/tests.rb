@@ -8,7 +8,7 @@
 require_relative './tet'
 
 puts 'EXPECTED Results:'
-puts '.....F!F!FF.F......F.F.F.'
+puts '.....F!F!FF.F......F.F.F.!'
 puts 'ACTUAL Results:'
 
 group 'Passing' do
@@ -134,5 +134,9 @@ group 'Output' do
         output_is_a?(FalseClass) { err {"this fails"} }
       end
     end
+  end
+
+  group '"Did you mean?" messages look nice' do
+    assert { 1.to_ss }
   end
 end
