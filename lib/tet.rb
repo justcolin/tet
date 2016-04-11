@@ -81,32 +81,34 @@ module Tet
       print letter
 
       @total_asserts +=1
-      @fail_messeges << [@current_group.join('  :  '), *messeges].join("\n")
+      @fail_messeges << @current_group.join('  :  ') << messeges
     end
 
     # Log an assertion error.
     def error error
-      fail format_error(error),
-           letter: '!'
+      fail *format_error(error), letter: '!'
     end
 
     # Log an assertion which had the wrong error.
     def wrong_error expected:, got:
-      fail indent("EXPECTED: #{expected}"),
-           format_error(got)
+      fail "EXPECTED: #{expected}", *format_error(got)
     end
 
     private
 
     def format_error error
-      [
-        indent("ERROR: (#{error.class}) #{error.message}"),
-        *error.backtrace.map { |line| indent(line, 2) }
-      ].join("\n")
+      ["ERROR: (#{error.class}) #{error.message}", error.backtrace]
     end
 
-    def indent string, amount = 1
-      string.gsub(/(?<=\n|\A)/, '    ' * amount)
+    def indent input, amount = 0
+      case input
+      when String
+        ('    ' * amount) + input
+      when Array
+        input.reject(&:empty?)
+             .map { |part| indent(part, amount + 1) }
+             .join("\n")
+      end
     end
   end
 
@@ -114,9 +116,6 @@ module Tet
   at_exit do
     puts "\n" unless @total_asserts.zero?
     puts "#{@fail_messeges.size} out of #{@total_asserts} failed"
-
-    @fail_messeges.each do |message|
-      puts indent('- ' + message)
-    end
+    puts indent(@fail_messeges)
   end
 end
