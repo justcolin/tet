@@ -1,6 +1,6 @@
 Gem::Specification.new do |s|
   s.name     = 'tet'
-  s.version  = '1.0.2'
+  s.version  = '1.0.3'
   s.date     = '2016-04-06'
 
   s.summary     = "Barely a test framework"
