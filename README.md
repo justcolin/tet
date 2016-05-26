@@ -12,7 +12,7 @@ Is Tet the product of boredom and yak shaving? **Yes**.
 
 ## Usage
 
-To use Tet, install the gem and add `require "tet"` to your test files. Run tests by evaluating test files using `ruby`.
+To use Tet, install the gem and add `require "tet"` to each of your test files. Run tests by evaluating your test files using `ruby`.
 
 ### Assertions
 
@@ -43,13 +43,21 @@ There are three assertion methods:
     err { 1 == 2 } # Fails
     err { not_a_method } # Passes
 
-    err(ArgumentError) { not_a_method } # Fails (wrong class)
-    err(NameError) { not_a_method } # Passes
+    err(expect: ArgumentError) { not_a_method } # Fails (wrong class)
+    err(expect: NameError) { not_a_method } # Passes
   ```
+
+All three of these methods optionally take a `name` as the first argument to let you note what the assertion does:
+
+```ruby
+  assert("all is right with the world") { 1 == 1 }
+  deny("this isn't JavaScript") { "" == false }
+  err("no method errors work") { some_method }
+```
 
 ### Groups
 
-If you want to label an assertion, group of assertions or group of groups you can use the **#group** method.
+If you want to label a group of assertions or group of groups you can use the **#group** method.
 
 ```ruby
   group "a group of tests" do
