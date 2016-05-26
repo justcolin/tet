@@ -8,8 +8,8 @@
 require_relative './tet'
 
 puts 'EXPECTED Results:'
-puts '.....F!F!FF.F......F.F.F.!'
-puts '11 out of 26 failed'
+puts '.....F!F!FF.F!.F......F.F.F.!'
+puts '13 out of 29 failed'
 puts "\nACTUAL Results:"
 
 group 'Passing' do
@@ -78,6 +78,18 @@ group 'Output' do
       assert do
         group('EXAMPLE') {'example ouput'} == 'example ouput'
       end
+    end
+
+    return_value = group "this group fails to make sure errors are caught" do
+                     group("this failure should be seen") { assert { false} }
+
+                     raise "Example Error"
+
+                     group("this failure should NOT be seen") { assert { false} }
+                   end
+
+    group "returns nil when an assertion returns an error" do
+      assert { return_value.nil? }
     end
 
     group 'this test fails to see what giving a Class as name looks like' do
