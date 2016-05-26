@@ -116,6 +116,7 @@ module Tet
 
     private
 
+    # Format an error message so #indent will render it properly
     def format_error error_object
       [
         "ERROR: #{error_object.class}",
@@ -123,6 +124,8 @@ module Tet
       ]
     end
 
+    # Format an array of strings by joining them with \n and indenting nested
+    # arrays deeper than their parents.
     def indent input, amount = 0
       case input
       when String
