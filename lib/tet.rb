@@ -58,6 +58,11 @@ end
 
 # A namespace for all of the helper methods.
 module Tet
+  PassChar       = "."
+  FailChar       = "F"
+  ErrorChar      = "!"
+  GroupSeperator = "  |  "
+
   @current_group = []
   @fail_messeges = []
   @total_asserts = 0
@@ -81,23 +86,23 @@ module Tet
 
     # Log a passing assertion.
     def pass
-      print '.'
+      print PassChar
 
       @total_asserts += 1
     end
 
     # Log a failing assertion.
-    def fail *messeges, letter: 'F'
+    def fail *messeges, letter: FailChar
       print letter
 
       @total_asserts += 1
       @total_fails   += 1
-      @fail_messeges << @current_group.join('  :  ') << messeges
+      @fail_messeges << @current_group.join(GroupSeperator) << messeges
     end
 
     # Log an assertion error.
     def error error_object, *messages
-      fail *messages, *format_error(error_object), letter: '!'
+      fail *messages, *format_error(error_object), letter: ErrorChar
     end
 
     # Log an assertion which had the wrong error.
@@ -117,7 +122,7 @@ module Tet
     def indent input, amount = 0
       case input
       when String
-        input.gsub(/^/, '  ' * amount)
+        input.gsub(/^/, "  " * amount)
       when Array
         input.reject(&:empty?)
              .map { |part| indent(part, amount + 1) }
