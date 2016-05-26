@@ -6,34 +6,36 @@
 # (located in root directory of this project) for details.
 
 # Label all tests within a block.
-def group name
+def group name = nil
   Tet.in_group(name) { yield }
 end
 
 # Declare that a block will return a truthy value.
 # If it doesn't or if it has an error, the assertion will be logged as failing.
-def assert
-  result = false
+def assert name = nil
+  Tet.in_group(name) do
+    result = false
 
-  begin
-    result = yield
+    begin
+      result = yield
 
-    if result
-      Tet.pass
-    else
-      Tet.fail
+      if result
+        Tet.pass
+      else
+        Tet.fail
+      end
+    rescue StandardError => error
+      Tet.error(error)
     end
-  rescue StandardError => error
-    Tet.error(error)
-  end
 
-  !!result
+    !!result
+  end
 end
 
 # Declare that a block will return a falsy value.
 # If it doesn't or if it has an error, the assertion will be logged as failing.
-def deny
-  assert { !yield }
+def deny name = nil
+  assert(name) { !yield }
 end
 
 # Declare that a block will have an error.
@@ -72,7 +74,7 @@ module Tet
     # Store the group name for the duration of calling the given block.
     def in_group name
       result = nil
-      @current_group.push(name)
+      @current_group.push(name) if name
 
       begin
         result = yield
