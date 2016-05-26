@@ -7,154 +7,113 @@
 
 require_relative "./tet"
 
-puts "EXPECTED Results:"
-puts ".....F!F!FF.F!.FFF......F.F.F.!"
-puts "15 out of 31 failed"
-puts "\nACTUAL Results:"
+puts <<-END
+Expected results:
+.F!..F..F!..F..!.F.......FF.FF.!
+13 out of 32 failed
 
-group "Passing" do
-  group "#assert" do
-    group "truthy blocks pass" do
-      assert { "this is truthy" }
+Actual results:
+END
+
+# Wraps the block in a group to label it as an example instead of a real test.
+def fails
+  group("INTENDED FAILURE") { result = yield }
+end
+
+group "#assert" do
+  assert("truthy blocks pass") { true }
+
+  fails do
+    assert("falsy blocks fail") { nil }
+    assert("errors are caught and count as failures") { not_a_method }
+  end
+
+  assert "passing returns true" do
+    assert { true }.equal?(true)
+  end
+
+  assert "failing returns false" do
+    fails { assert { nil }.equal?(false) }
+  end
+end
+
+group "#deny" do
+  deny("falsey blocks pass") { nil }
+
+  fails do
+    deny("truthy blocks fail") { :truthy }
+    deny("errors are caught and count as failures") { not_a_method }
+  end
+
+  assert "passing returns true" do
+    deny { nil }.equal?(true)
+  end
+
+  assert "failing returns false" do
+    fails { deny { :truthy }.equal?(false) }
+  end
+end
+
+group "#group" do
+  assert "returns output of block" do
+    group("EXAMPLE") { "example ouput" } == "example ouput"
+  end
+
+  return_value = fails do
+                   group "catches errors" do
+                     raise "Example Error"
+                     assert("this failure should NOT be seen") { false }
+                   end
+                 end
+
+  group "returns nil when an assertion returns an error" do
+    assert { return_value.nil? }
+  end
+
+  group "can have classes for names" do
+    group String do
+      fails { assert { false } }
+    end
+  end
+end
+group "#err" do
+  group "passes when there is an error" do
+    err { not_a_method }
+
+    assert "... and returns true" do
+      err { not_a_method }.equal?(true)
     end
   end
 
-  group "#deny" do
-    group "falsy blocks pass" do
-      deny { nil }
-    end
-  end
+  group "allows you to specify an exception class" do
+    err(NameError) { not_a_method }
 
-  group "#err" do
-    group "passes when there is an error" do
-      err { not_a_method }
-    end
-
-    group "allows you to specify an exception class" do
-      err(NameError) { not_a_method }
-    end
-
-    group "allows you to specify a parent exception class" do
+    group "... or a parent exception class" do
       err(Exception) { not_a_method }
     end
-  end
-end
 
-group "Failing" do
-  group "#assert" do
-    group "falsy blocks fail" do
-      assert { nil }
-    end
-
-    group "errors are caught and count as failures" do
-      assert { not_a_method }
+    assert "... and returns true" do
+      err(NameError) { not_a_method }.equal?(true)
     end
   end
 
-  group "#deny" do
-    group "truthy blocks fail" do
-      deny { "this is truthy" }
-    end
+  group "fails when there is no error" do
+    fails { err { 1 + 1 } }
 
-    group "errors are caught and count as failures" do
-      deny { not_a_method }
+    assert "... and returns false" do
+      fails { err { 1 + 1 } }.equal?(false)
     end
   end
 
-  group "#err" do
-    group "fails when there is no error" do
-      err { 1 + 1 }
-    end
+  group "fails given wrong error class" do
+    fails { err(ArgumentError) { not_a_method } }
 
-    group "fails given wrong error class" do
-      err(ArgumentError) { not_a_method }
+    assert "... and returns false" do
+      fails { err(ArgumentError) { not_a_method } }.equal?(false)
     end
   end
 end
 
-group "Output" do
-  group "#group" do
-    group "returns output of block" do
-      assert do
-        group("EXAMPLE") { "example ouput" } == "example ouput"
-      end
-    end
-
-    return_value = group "this group fails to make sure errors are caught" do
-      group("this failure should be seen") { assert { false } }
-
-      raise "Example Error"
-
-      group("this failure should NOT be seen") { assert { false } }
-    end
-
-    group "returns nil when an assertion returns an error" do
-      assert { return_value.nil? }
-    end
-
-    group "this test fails to see what giving a Class as name looks like" do
-      group String do
-        assert { false }
-      end
-    end
-  end
-
-  group "fails to see that #assert and #deny blocks can have names like..." do
-    assert("Ashley") { false }
-    deny("Slappy Socks") { true }
-  end
-
-  # Test if the output of a block is a given Class.
-  # Wraps the block in a group to label it as an example instead of a real test.
-  def output_equal? other
-    result = nil
-
-    result = yield
-
-    result.equal?(other)
-  end
-
-  group "passing returns true" do
-    group "#assert" do
-      assert do
-        output_equal?(true) { assert {"this passes"} }
-      end
-    end
-
-    group "#deny" do
-      assert do
-        output_equal?(true) { deny {nil} }
-      end
-    end
-
-    group "#err" do
-      assert do
-        output_equal?(true) { err {not_a_method} }
-      end
-    end
-  end
-
-  group "failing returns false" do
-    group "#assert" do
-      assert do
-        output_equal?(false) { assert {nil} }
-      end
-    end
-
-    group "#deny" do
-      assert do
-        output_equal?(false) { deny {"this fails"} }
-      end
-    end
-
-    group "#err" do
-      assert do
-        output_equal?(false) { err {"this fails"} }
-      end
-    end
-  end
-
-  group "'Did you mean?' messages look nice" do
-    assert { 1.to_z }
-  end
+group "'Did you mean?' error messages look nice" do
+  fails { assert { 1.to_z } }
 end
