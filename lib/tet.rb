@@ -40,22 +40,24 @@ end
 
 # Declare that a block will have an error.
 # If it doesn't the assertion will be logged as failing.
-def err expect = StandardError
-  result = false
+def err name, expect: StandardError
+  Tet.in_group(name) do
+    result = false
 
-  begin
-    yield
-    Tet.fail
-  rescue StandardError => error_object
-    if expect >= error_object.class
-      result = true
-      Tet.pass
-    else
-      Tet.wrong_error(expected: expect, got: error_object)
+    begin
+      yield
+      Tet.fail
+    rescue StandardError => error_object
+      if expect >= error_object.class
+        result = true
+        Tet.pass
+      else
+        Tet.wrong_error(expected: expect, got: error_object)
+      end
     end
-  end
 
-  result
+    result
+  end
 end
 
 # A namespace for all of the helper methods.
