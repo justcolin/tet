@@ -35,6 +35,8 @@ group "#assert" do
   assert "failing returns false" do
     fails { assert { nil }.equal?(false) }
   end
+
+  fail { assert("Can have a name") { nil }
 end
 
 group "#deny" do
@@ -52,6 +54,8 @@ group "#deny" do
   assert "failing returns false" do
     fails { deny { :truthy }.equal?(false) }
   end
+
+  fail { deny("Can have a name") { :truthy } }
 end
 
 group "#group" do
@@ -76,6 +80,7 @@ group "#group" do
     end
   end
 end
+
 group "#err" do
   group "passes when there is an error" do
     err { not_a_method }
