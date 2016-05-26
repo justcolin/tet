@@ -9,8 +9,8 @@ require_relative "./tet"
 
 puts <<-END
 Expected results:
-.F!..F..F!..F..!.F.......FF.FF.!
-13 out of 32 failed
+.F!..F.F.F!..F.F.!.F.......FF.FF.F!
+16 out of 35 failed
 
 Actual results:
 END
@@ -36,7 +36,7 @@ group "#assert" do
     fails { assert { nil }.equal?(false) }
   end
 
-  fail { assert("Can have a name") { nil }
+  fails { assert("Can have a name") { nil } }
 end
 
 group "#deny" do
@@ -55,7 +55,7 @@ group "#deny" do
     fails { deny { :truthy }.equal?(false) }
   end
 
-  fail { deny("Can have a name") { :truthy } }
+  fails { deny("Can have a name") { :truthy } }
 end
 
 group "#group" do
@@ -63,15 +63,10 @@ group "#group" do
     group("EXAMPLE") { "example ouput" } == "example ouput"
   end
 
-  return_value = fails do
-                   group "catches errors" do
-                     raise "Example Error"
-                     assert("this failure should NOT be seen") { false }
-                   end
-                 end
+  return_value = fails { group("catches errors") { raise "Example Error" } }
 
-  group "returns nil when an assertion returns an error" do
-    assert { return_value.nil? }
+  assert "returns nil when an assertion returns an error" do
+    return_value.nil?
   end
 
   group "can have classes for names" do
@@ -103,22 +98,22 @@ group "#err" do
   end
 
   group "fails when there is no error" do
-    fails { err { 1 + 1 } }
+    fails { err { 1+1 } }
 
     assert "... and returns false" do
-      fails { err { 1 + 1 } }.equal?(false)
+      fails { err { 1+1 } }.equal?(false)
     end
   end
 
   group "fails given wrong error class" do
-    fails { err(ArgumentError) { not_a_method } }
+    fails { err(expect: ArgumentError) { not_a_method } }
 
     assert "... and returns false" do
-      fails { err(ArgumentError) { not_a_method } }.equal?(false)
+      fails { err(expect: ArgumentError) { not_a_method } }.equal?(false)
     end
   end
 
-  fail { err("Can have a name") { 1 + 1 } }
+  fails { err("Can have a name") { 1+1 } }
 end
 
 group "'Did you mean?' error messages look nice" do

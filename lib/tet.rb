@@ -40,7 +40,7 @@ end
 
 # Declare that a block will have an error.
 # If it doesn't the assertion will be logged as failing.
-def err name, expect: StandardError
+def err name = nil, expect: StandardError
   Tet.in_group(name) do
     result = false
 
