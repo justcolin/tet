@@ -44,12 +44,12 @@ def err expect = StandardError
   begin
     yield
     Tet.fail
-  rescue StandardError => error
-    if expect >= error.class
+  rescue StandardError => error_object
+    if expect >= error_object.class
       result = true
       Tet.pass
     else
-      Tet.wrong_error(expected: expect, got: error)
+      Tet.wrong_error(expected: expect, got: error_object)
     end
   end
 
@@ -87,8 +87,8 @@ module Tet
     end
 
     # Log an assertion error.
-    def error error
-      fail *format_error(error), letter: '!'
+    def error error_object, *messages
+      fail *messages, *format_error(error_object), letter: '!'
     end
 
     # Log an assertion which had the wrong error.
@@ -98,10 +98,10 @@ module Tet
 
     private
 
-    def format_error error
+    def format_error error_object
       [
-        "ERROR: #{error.class}",
-        ["#{error.message}", error.backtrace]
+        "ERROR: #{error_object.class}",
+        ["#{error_object.message}", error_object.backtrace]
       ]
     end
 
