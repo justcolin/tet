@@ -91,14 +91,14 @@ group "#err" do
   end
 
   group "allows you to specify an exception class" do
-    err(NameError) { not_a_method }
+    err(expect: NameError) { not_a_method }
 
     group "... or a parent exception class" do
-      err(Exception) { not_a_method }
+      err(expect: Exception) { not_a_method }
     end
 
     assert "... and returns true" do
-      err(NameError) { not_a_method }.equal?(true)
+      err(expect: NameError) { not_a_method }.equal?(true)
     end
   end
 
@@ -117,6 +117,8 @@ group "#err" do
       fails { err(ArgumentError) { not_a_method } }.equal?(false)
     end
   end
+
+  fail { err("Can have a name") { 1 + 1 } }
 end
 
 group "'Did you mean?' error messages look nice" do
