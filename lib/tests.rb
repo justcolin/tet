@@ -8,8 +8,8 @@
 require_relative "./tet"
 
 puts "EXPECTED Results:"
-puts ".....F!F!FF.F!.F......F.F.F.!"
-puts "13 out of 29 failed"
+puts ".....F!F!FF.F!.FFF......F.F.F.!"
+puts "15 out of 31 failed"
 puts "\nACTUAL Results:"
 
 group "Passing" do
@@ -97,6 +97,11 @@ group "Output" do
         assert { false }
       end
     end
+  end
+
+  group "fails to see that #assert and #deny blocks can have names like..." do
+    assert("Ashley") { false }
+    deny("Slappy Socks") { true }
   end
 
   # Test if the output of a block is a given Class.
