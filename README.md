@@ -8,7 +8,7 @@ I wanted a micro test-framework to test a parser for a test-framework-framework 
 
 Does the world need another test-framework? **No**.
 
-Is Tet the product boredom and yak shaving? **Yes**.
+Is Tet the product of boredom and yak shaving? **Yes**.
 
 ## Usage
 
