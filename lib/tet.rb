@@ -66,8 +66,17 @@ module Tet
   class << self
     # Store the group name for the duration of calling the given block.
     def in_group name
+      result = nil
       @current_group.push(name)
-      yield.tap { @current_group.pop }
+
+      begin
+        result = yield
+      rescue StandardError => error_object
+        error error_object, "ERROR IN GROUP"
+      end
+
+      @current_group.pop if name
+      result
     end
 
     # Log a passing assertion.
