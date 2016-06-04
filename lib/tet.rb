@@ -24,8 +24,8 @@ def assert name = nil
       else
         Tet.fail
       end
-    rescue StandardError => error
-      Tet.error(error)
+    rescue StandardError => error_object
+      Tet.error(error_object)
     end
 
     !!result
