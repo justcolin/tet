@@ -11,7 +11,7 @@ def group name = nil
 end
 
 # Declare that a block will return a truthy value.
-# If it doesn't or if it has an error, the assertion will be logged as failing.
+# If it doesn't or if it has an error, the test will be logged as failing.
 def assert name = nil
   Tet.in_group(name) do
     result = false
@@ -32,14 +32,8 @@ def assert name = nil
   end
 end
 
-# Declare that a block will return a falsy value.
-# If it doesn't or if it has an error, the assertion will be logged as failing.
-def deny name = nil
-  assert(name) { !yield }
-end
-
 # Declare that a block will have an error.
-# If it doesn't the assertion will be logged as failing.
+# If it doesn't the test will be logged as failing.
 def err name = nil, expect: StandardError
   Tet.in_group(name) do
     result = false
@@ -69,10 +63,14 @@ module Tet
 
   @current_group = []
   @fail_messeges = []
-  @total_asserts = 0
+  @total_tests   = 0
   @total_fails   = 0
+  @total_errs    = 0
 
   class << self
+    attr_reader :total_fails
+    attr_reader :total_errs
+
     # Store the group name for the duration of calling the given block.
     def in_group name
       result = nil
@@ -88,28 +86,30 @@ module Tet
       result
     end
 
-    # Log a passing assertion.
+    # Log a passing test.
     def pass
       print PassChar
 
-      @total_asserts += 1
+      @total_tests += 1
     end
 
-    # Log a failing assertion.
+    # Log a failing test.
     def fail *messeges, letter: FailChar
       print letter
 
-      @total_asserts += 1
-      @total_fails   += 1
+      @total_tests += 1
+      @total_fails += 1
+
       @fail_messeges << @current_group.join(GroupSeperator) << messeges
     end
 
-    # Log an assertion error.
+    # Log an error.
     def error error_object, *messages
+      @total_errs += 1
       fail *messages, *format_error(error_object), letter: ErrorChar
     end
 
-    # Log an assertion which had the wrong error.
+    # Log test which raised the wrong error.
     def wrong_error expected:, got:
       fail "EXPECTED: #{expected}", *format_error(got)
     end
@@ -138,10 +138,16 @@ module Tet
     end
   end
 
-  # Print messages for all the failing assertions.
+  # Print messages for all the failing tests.
   at_exit do
-    puts "\n" unless @total_asserts.zero?
-    puts "#{@total_fails} out of #{@total_asserts} failed"
+    puts "\n" unless @total_tests == 0
+
+    if @total_fails + @total_errs == 0
+      puts "all #{@total_tests} tests passed"
+    else
+      puts "#{@total_fails} fails including #{@total_errs} errors"
+    end
+
     puts indent(@fail_messeges)
   end
 end
