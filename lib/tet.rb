@@ -115,6 +115,19 @@ module Tet
       fail "EXPECTED: #{expected}", *format_error(got)
     end
 
+    # Print stats and messages for all the failing tests.
+    def render_result
+      puts "\n" unless @data[:tests] == 0
+
+      if @data[:fails] + @data[:errs] == 0
+        puts "all #{@data[:tests]} tests passed"
+      else
+        puts "#{@data[:fails]} fails including #{@data[:errs]} errors"
+      end
+
+      puts indent(@data[:messages])
+    end
+
     private
 
     # Format an error message so #indent will render it properly
@@ -139,16 +152,5 @@ module Tet
     end
   end
 
-  # Print messages for all the failing tests.
-  at_exit do
-    puts "\n" unless @total_tests == 0
-
-    if @total_fails + @total_errs == 0
-      puts "all #{@total_tests} tests passed"
-    else
-      puts "#{@total_fails} fails including #{@total_errs} errors"
-    end
-
-    puts indent(@fail_messeges)
-  end
+  at_exit { Tet.render_result }
 end
