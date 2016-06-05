@@ -23,11 +23,11 @@ at_exit do
 end
 
 def total_fails
-  Tet.total_fails - Tet.total_errs
+  Tet.data[:fails] - Tet.data[:errs]
 end
 
 def total_errs
-  Tet.total_errs
+  Tet.data[:errs]
 end
 
 # Wraps the block in a group to label it as an example instead of a real test.

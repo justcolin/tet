@@ -62,14 +62,15 @@ module Tet
   GroupSeperator = "  |  "
 
   @current_group = []
-  @fail_messeges = []
-  @total_tests   = 0
-  @total_fails   = 0
-  @total_errs    = 0
+  @data          = {
+                     messages: [],
+                     tests:    0,
+                     fails:    0,
+                     errs:     0
+                   }
 
   class << self
-    attr_reader :total_fails
-    attr_reader :total_errs
+    attr_reader :data
 
     # Store the group name for the duration of calling the given block.
     def in_group name
@@ -90,22 +91,22 @@ module Tet
     def pass
       print PassChar
 
-      @total_tests += 1
+      @data[:tests] += 1
     end
 
     # Log a failing test.
     def fail *messeges, letter: FailChar
       print letter
 
-      @total_tests += 1
-      @total_fails += 1
+      @data[:tests] += 1
+      @data[:fails] += 1
 
-      @fail_messeges << @current_group.join(GroupSeperator) << messeges
+      @data[:messages] << @current_group.join(GroupSeperator) << messeges
     end
 
     # Log an error.
     def error error_object, *messages
-      @total_errs += 1
+      @data[:errs] += 1
       fail *messages, *format_error(error_object), letter: ErrorChar
     end
 
