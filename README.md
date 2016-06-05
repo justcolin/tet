@@ -1,58 +1,48 @@
-# Tet: Barely A Ruby Test-Framework
+# Tet: A Ruby Test Framework _(barely)_
 
 - A couple of features
 - Relatively nice looking output
 - Nothing else
 
-I wanted a micro test-framework to test a parser for a test-framework-framework that I was writing for fun, thus Tet was born. Tet is a *very* minimal test-framework designed for simple projects.
+I wanted a micro test framework to test a parser for a larger test framework that I was writing for fun, thus `tet` was born. Tet is a *very* minimal test framework designed for simple projects.
 
-Does the world need another test-framework? **No**.
+Does the world need another test framework? **No**.
 
 Is Tet the product of boredom and yak shaving? **Yes**.
 
 ## Usage
 
-To use Tet, install the gem and add `require "tet"` to each of your test files. Run tests by evaluating your test files using `ruby`.
+To use Tet, install the gem and add `require "tet"` to your test files. Run tests by evaluating your test files using `ruby`.
 
 ### Assertions
 
-There are three assertion methods:
+There are two assertion methods:
 
-- **#assert** takes a block. If the block returns a _truthy_ value, the test passes. If not, it fails.
-
-  ```ruby
-    assert { "this is a String".is_a? String } # Passes
-    assert { 1 == 2 } # Fails
-    assert { not_a_method } # Fails with an error message
-  ```
-
-- **#deny** takes a block. If the block returns a _falsy_ value, the test passes. If not, it fails.
+- **#assert** takes a block. If the block returns a truthy value, the test passes. If not, it fails.
 
   ```ruby
-    deny { "this is a String".is_a? String } # Fails
-    deny { 1 == 2 } # Passes
-    deny { not_a_method } # Fails with an error message
+    assert { "this is a String".is_a?(String) } # Passes
+    assert { 1 == 2 } # Fails becaue the block returned a falsey value
+    assert { not_a_method } # Fails because there was an error
   ```
 
-- **#err** takes a block. If the block _raises an exception_, the test passes. If not, it fails.
+- **#err** takes a block. If the block raises an exception, the test passes. If not, it fails.
 
-  If you pass in an exception class, **#err** will only pass if the exception raised is an instance of that class or one of its subclasses.
+  If you pass in an exception class to the `expect` argument the test will only pass if the exception raised within the block is an instance of that class or one of its subclasses.
 
   ```ruby
-    err { "this is a String".is_a? String } # Fails
-    err { 1 == 2 } # Fails
-    err { not_a_method } # Passes
+    err { 1 == 2 } # Fails because there was no error
+    err { not_a_method } # Passes because there was an error
 
-    err(expect: ArgumentError) { not_a_method } # Fails (wrong class)
-    err(expect: NameError) { not_a_method } # Passes
+    err(expect: NameError) { not_a_method } # Passes because there was a NameError
+    err(expect: ArgumentError) { not_a_method } # Fails the error wasn't an ArgumentError
   ```
 
-All three of these methods optionally take a `name` as the first argument to let you note what the assertion does:
+Both of these methods optionally take a `name` as the first argument to let you note what the assertion does:
 
 ```ruby
   assert("all is right with the world") { 1 == 1 }
-  deny("this isn't JavaScript") { "" == false }
-  err("no method errors work") { some_method }
+  err("no method errors work") { nonexistent_method }
 ```
 
 ### Groups
@@ -61,13 +51,19 @@ If you want to label a group of assertions or group of groups you can use the **
 
 ```ruby
   group "a group of tests" do
+    string = "40"
+
     group "here are some assertions" do
-      assert { "a test" }
-      assert { "another test" }
+      number = string.to_i
+
+      assert { number + 2 == 42 }
+      assert { number.is_a?(Numeric) }
     end
 
     group "more assertions" do
-      assert { "what? another test?" }
+      another_string = string + string
+
+      assert { string.size < another_string.size }
     end
   end
 ```
