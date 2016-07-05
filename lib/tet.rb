@@ -122,7 +122,7 @@ module Tet
       if @data[:fails] + @data[:errs] == 0
         puts "all #{@data[:tests]} tests passed"
       else
-        puts "#{@data[:fails]} fails including #{@data[:errs]} errors"
+        puts "#{@data[:fails]} fail(s) including #{@data[:errs]} error(s)"
       end
 
       puts indent(@data[:messages])
