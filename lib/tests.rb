@@ -61,11 +61,11 @@ group "#assert" do
 
   should_fail { assert("falsy blocks fail") { nil } }
   should_err { assert("errors are caught and count as failures") { not_a_method } }
+  should_fail { assert("empty assertions fail") {} }
 
   assert("passing returns true") { true }.equal?(true)
 
   should_fail { assert("failing returns false") { nil }.equal?(false) }
-  should_fail { assert("Can have a name") { nil } }
 end
 
 group "#group" do
@@ -95,6 +95,8 @@ group "#err" do
     end
   end
 
+  should_fail { err("empty assertions fail") {} }
+
   group "allows you to specify an exception class" do
     err(expect: NameError) { not_a_method }
 
@@ -115,7 +117,7 @@ group "#err" do
     end
   end
 
-  group "ail sgiven wrong error class" do
+  group "fails given wrong error class" do
     should_fail { err(expect: ArgumentError) { not_a_method } }
 
     assert "... and returns false" do
