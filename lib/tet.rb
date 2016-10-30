@@ -92,14 +92,14 @@ module Tet
 
     # Log a passing test.
     def pass
-      print PassChar
+      print_now PassChar
 
       @test_count += 1
     end
 
     # Log a failing test.
     def fail *messeges, letter: FailChar
-      print letter
+      print_now letter
 
       @test_count += 1
       @fail_count += 1
@@ -180,6 +180,11 @@ module Tet
 
     def plural amount, name
       "#{amount} #{name}#{amount != 1 ? "s" : ""}"
+    end
+
+    def print_now string
+      print string
+      $stdout.flush
     end
   end
 
