@@ -23,11 +23,11 @@ at_exit do
 end
 
 def total_fails
-  Tet.data[:fails] - Tet.data[:errs]
+  Tet.fail_count - Tet.err_count
 end
 
 def total_errs
-  Tet.data[:errs]
+  Tet.err_count
 end
 
 # Wraps the block in a group to label it as an example instead of a real test.
@@ -63,20 +63,29 @@ group "#assert" do
   should_err { assert("errors are caught and count as failures") { not_a_method } }
   should_fail { assert("empty assertions fail") {} }
 
-  assert("passing returns true") { true }.equal?(true)
+  assert("passing returns true") {  assert { true }.equal?(true) }
 
   should_fail { assert("failing returns false") { nil }.equal?(false) }
 end
 
 group "#group" do
   assert "returns output of block" do
-    group("EXAMPLE") { "example ouput" } == "example ouput"
+    result = group("EXAMPLE") do
+               assert("EXAMPLE") { true }
+               "example output"
+             end
+
+      result == "example output"
   end
 
   return_value = should_err { group { raise "Example Error" } }
 
   assert "returns nil when the block throws an error" do
     return_value.nil?
+  end
+
+  group 'fails when empty' do
+    should_fail { group { } }
   end
 
   group "can have classes for names" do
@@ -90,7 +99,7 @@ group "#err" do
   group "passes when there is an error" do
     err { not_a_method }
 
-    assert "... and returns true" do
+    assert "and returns true" do
       err { not_a_method }.equal?(true)
     end
   end
@@ -100,11 +109,11 @@ group "#err" do
   group "allows you to specify an exception class" do
     err(expect: NameError) { not_a_method }
 
-    group "... or a parent exception class" do
+    group "or a parent exception class" do
       err(expect: Exception) { not_a_method }
     end
 
-    assert "... and returns true" do
+    assert "and returns true" do
       err(expect: NameError) { not_a_method }.equal?(true)
     end
   end
@@ -112,7 +121,7 @@ group "#err" do
   group "fails when there is no error" do
     should_fail { err { 1+1 } }
 
-    assert "... and returns false" do
+    assert "and returns false" do
       should_fail { err { 1+1 } }.equal?(false)
     end
   end
@@ -120,7 +129,7 @@ group "#err" do
   group "fails given wrong error class" do
     should_fail { err(expect: ArgumentError) { not_a_method } }
 
-    assert "... and returns false" do
+    assert "and returns false" do
       should_fail { err(expect: ArgumentError) { not_a_method } }.equal?(false)
     end
   end

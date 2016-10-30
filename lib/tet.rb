@@ -7,7 +7,10 @@
 
 # Label all tests within a block.
 def group name = nil
+  before = Tet.test_count
+
   Tet.in_group(name) { yield }
+     .tap { Tet.fail "EMPTY GROUP" if Tet.test_count == before }
 end
 
 # Declare that a block will return a truthy value.
@@ -56,26 +59,25 @@ end
 
 # A namespace for all of the helper methods.
 module Tet
-  PassChar       = "."
-  FailChar       = "F"
-  ErrorChar      = "!"
-  GroupSeperator = "  |  "
+  PassChar  = "."
+  FailChar  = "F"
+  ErrorChar = "!"
+  Indent    = "    "
 
+  @messages      = []
   @current_group = []
-  @data          = {
-                     messages: [],
-                     tests:    0,
-                     fails:    0,
-                     errs:     0
-                   }
+  @test_count    = 0
+  @fail_count    = 0
+  @err_count     = 0
 
   class << self
-    attr_reader :data
+    attr_reader :messages, :test_count, :fail_count, :err_count
 
     # Store the group name for the duration of calling the given block.
     def in_group name
       result = nil
-      @current_group.push(name) if name
+
+      @current_group << name.to_s if name
 
       begin
         result = yield
@@ -84,6 +86,7 @@ module Tet
       end
 
       @current_group.pop if name
+
       result
     end
 
@@ -91,22 +94,35 @@ module Tet
     def pass
       print PassChar
 
-      @data[:tests] += 1
+      @test_count += 1
     end
 
     # Log a failing test.
     def fail *messeges, letter: FailChar
       print letter
 
-      @data[:tests] += 1
-      @data[:fails] += 1
+      @test_count += 1
+      @fail_count += 1
 
-      @data[:messages] << @current_group.join(GroupSeperator) << messeges
+      group   = @current_group.dup
+      section = @messages
+
+      until group.empty? || group.first != section[-2]
+        group.shift
+        section = section.last
+      end
+
+      until group.empty?
+        section << group.shift << []
+        section = section.last
+      end
+
+      section.concat(messeges)
     end
 
     # Log an error.
     def error error_object, *messages
-      @data[:errs] += 1
+      @err_count += 1
       fail *messages, *format_error(error_object), letter: ErrorChar
     end
 
@@ -117,15 +133,23 @@ module Tet
 
     # Print stats and messages for all the failing tests.
     def render_result
-      puts "\n" unless @data[:tests] == 0
+      puts "\n" unless @test_count.zero?
 
-      if @data[:fails] + @data[:errs] == 0
-        puts "all #{@data[:tests]} tests passed"
+      print "#{plural @test_count, 'result'}, "
+
+      if (@fail_count + @err_count).zero?
+        print "suite passed!"
       else
-        puts "#{@data[:fails]} fail(s) including #{@data[:errs]} error(s)"
+        print "#{plural @fail_count, 'fail'}"
+        print " (including #{plural @err_count, 'error'})" unless @err_count.zero?
       end
 
-      puts indent(@data[:messages])
+      print "\n"
+
+      unless @messages.empty?
+        puts "\nFailed tests:"
+        puts indent(@messages)
+      end
     end
 
     private
@@ -134,7 +158,10 @@ module Tet
     def format_error error_object
       [
         "ERROR: #{error_object.class}",
-        ["#{error_object.message}", error_object.backtrace]
+        [
+          "#{error_object.message}",
+          error_object.backtrace
+        ]
       ]
     end
 
@@ -143,12 +170,16 @@ module Tet
     def indent input, amount = 0
       case input
       when String
-        input.gsub(/^/, "  " * amount)
+        input.gsub(/^/, Indent * amount)
       when Array
         input.reject(&:empty?)
              .map { |part| indent(part, amount + 1) }
              .join("\n")
       end
+    end
+
+    def plural amount, name
+      "#{amount} #{name}#{amount != 1 ? "s" : ""}"
     end
   end
 
