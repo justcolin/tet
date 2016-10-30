@@ -138,7 +138,7 @@ module Tet
       print "#{plural @test_count, 'result'}, "
 
       if (@fail_count + @err_count).zero?
-        print "suite passed!"
+        print "all good!"
       else
         print "#{plural @fail_count, 'fail'}"
         print " (including #{plural @err_count, 'error'})" unless @err_count.zero?
