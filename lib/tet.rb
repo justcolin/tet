@@ -9,8 +9,9 @@
 def group name = nil
   before = Tet.test_count
 
-  Tet.in_group(name) { yield }
-     .tap { Tet.fail "EMPTY GROUP" if Tet.test_count == before }
+  Tet.in_group(name) do
+    yield.tap { Tet.fail "EMPTY GROUP" if Tet.test_count == before }
+  end
 end
 
 # Declare that a block will return a truthy value.

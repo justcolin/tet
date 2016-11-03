@@ -85,7 +85,7 @@ group "#group" do
   end
 
   group 'fails when empty' do
-    should_fail { group { } }
+    should_fail { group('group without content') { } }
   end
 
   group "can have classes for names" do
