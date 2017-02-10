@@ -11,30 +11,32 @@ require_relative "./test_helpers"
 group "#assert" do
   assert("truthy blocks pass") { true }
 
-  should_fail { assert("falsy blocks fail") { nil } }
-  should_err { assert("errors are caught and count as failures") { not_a_method } }
-  should_fail { assert("empty assertions fail") {} }
+  result = assert { true }
+  assert("passing returns true") { result.equal?(true) }
 
-  assert("passing returns true") {  assert { true }.equal?(true) }
+  result = should_fail { assert { false } }
+  assert("failing returns false") { result.equal?(false) }
 
-  should_fail { assert("failing returns false") { nil }.equal?(false) }
+  should_fail do
+    assert("falsy blocks fail")     { nil }
+    assert("empty assertions fail") { }
+  end
+
+  should_err do
+    assert("errors are caught and count as failures") { not_a_method }
+  end
 end
 
 group "#group" do
-  assert "returns output of block" do
-    result = group("EXAMPLE") do
+  expected = "example output"
+  result   = group("EXAMPLE") do
                assert("EXAMPLE") { true }
-               "example output"
+               expected
              end
-
-      result == "example output"
-  end
+  assert("returns output of block") { result == expected }
 
   return_value = should_err { group { raise "Example Error" } }
-
-  assert "returns nil when the block throws an error" do
-    return_value.nil?
-  end
+  assert("returns nil when the block throws an error") { return_value.nil? }
 
   group 'fails when empty' do
     should_fail { group('group without content') { } }
@@ -48,43 +50,21 @@ group "#group" do
 end
 
 group "#err" do
-  group "passes when there is an error" do
-    err { not_a_method }
+  err("passes when there is an error") { not_a_method }
 
-    assert "and returns true" do
-      err { not_a_method }.equal?(true)
-    end
+  err("specify an exception class",       expect: NameError) { not_a_method }
+  err("specify a parent exception class", expect: Exception) { not_a_method }
+
+  result = err { not_a_method }
+  assert("passing returns true") { result.equal?(true) }
+
+  result = should_fail { err { 1 + 1 } }
+  assert("failing returns false") { result.equal?(false) }
+
+  should_fail do
+    err("no errors fails") { 1 + 1 }
+    err("empty assertions fail") { }
+    err("wrong class fails", expect: ArgumentError) { not_a_method }
+
   end
-
-  should_fail { err("empty assertions fail") {} }
-
-  group "allows you to specify an exception class" do
-    err(expect: NameError) { not_a_method }
-
-    group "or a parent exception class" do
-      err(expect: Exception) { not_a_method }
-    end
-
-    assert "and returns true" do
-      err(expect: NameError) { not_a_method }.equal?(true)
-    end
-  end
-
-  group "fails when there is no error" do
-    should_fail { err { 1+1 } }
-
-    assert "and returns false" do
-      should_fail { err { 1+1 } }.equal?(false)
-    end
-  end
-
-  group "fails given wrong error class" do
-    should_fail { err(expect: ArgumentError) { not_a_method } }
-
-    assert "and returns false" do
-      should_fail { err(expect: ArgumentError) { not_a_method } }.equal?(false)
-    end
-  end
-
-  should_fail { err("Can have a name") { 1+1 } }
 end

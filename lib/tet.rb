@@ -10,7 +10,11 @@ def group name = nil
   before = Tet.test_count
 
   Tet.in_group(name) do
-    yield.tap { Tet.fail "EMPTY GROUP" if Tet.test_count == before }
+    yield.tap do
+      if Tet.test_count == before
+        Tet.log_fail("EMPTY GROUP")
+      end
+    end
   end
 end
 
@@ -83,7 +87,7 @@ module Tet
       begin
         result = yield
       rescue StandardError => error_object
-        error error_object, "ERROR IN GROUP"
+        log_error error_object, "ERROR IN GROUP"
       end
 
       @current_group.pop if name
@@ -92,44 +96,49 @@ module Tet
     end
 
     # Log a passing test.
-    def pass
+    def log_pass
       print_now PassChar
 
       @test_count += 1
     end
 
     # Log a failing test.
-    def fail *messeges, letter: FailChar
+    def log_fail *messages, letter: FailChar
       print_now letter
 
       @test_count += 1
       @fail_count += 1
 
-      group   = @current_group.dup
-      section = @messages
+      group           = @current_group.dup
+      current_section = @messages
 
-      until group.empty? || group.first != section[-2]
+      # Walk down the tree of messages until either you find the current group's
+      # array of messages OR the last section in common with the current group.
+      until group.empty? || group.first != current_section[-2]
         group.shift
-        section = section.last
+        current_section = current_section.last
       end
 
+      # If the messages were missing parts of this group fill out the remaining
+      # group names.
       until group.empty?
-        section << group.shift << []
-        section = section.last
+        current_section << group.shift << []
+        current_section = current_section.last
       end
 
-      section.concat(messeges)
+      # Append the new messages onto the current section.
+      current_section.concat(messages)
     end
 
     # Log an error.
-    def error error_object, *messages
+    def log_error error_object, *messages
       @err_count += 1
-      fail *messages, *format_error(error_object), letter: ErrorChar
+      log_fail *messages, *format_error(error_object), letter: ErrorChar
     end
 
     # Log test which raised the wrong error.
-    def wrong_error expected:, got:
-      fail "EXPECTED: #{expected}", *format_error(got)
+    def log_wrong_error expected:, got:
+      log_fail "EXPECTED: #{expected}", *format_error(got)
     end
 
     # Print stats and messages for all the failing tests.
@@ -173,16 +182,19 @@ module Tet
       when String
         input.gsub(/^/, Indent * amount)
       when Array
-        input.reject(&:empty?)
-             .map { |part| indent(part, amount + 1) }
-             .join("\n")
+        input
+          .reject(&:empty?)
+          .map { |part| indent(part, amount + 1) }
+          .join("\n")
       end
     end
 
-    def plural amount, name
-      "#{amount} #{name}#{amount != 1 ? "s" : ""}"
+    # Pluralize the given word.
+    def plural amount, word
+      "#{amount} #{word}#{amount != 1 ? "s" : ""}"
     end
 
+    # Prevent delays in printing results.
     def print_now string
       print string
       $stdout.flush
