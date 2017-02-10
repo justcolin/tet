@@ -124,8 +124,10 @@ module Tet
       @test_count += 1
       @fail_count += 1
 
+
       group           = @current_group.dup
       current_section = @messages
+      messages        = messages.map { |item| item.is_a?(Array) ? item : "✖ #{item}" }
 
       # Walk down the tree of messages until either you find the current group's
       # array of messages OR the last section in common with the current group.
