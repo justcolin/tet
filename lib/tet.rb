@@ -21,23 +21,25 @@ end
 # Declare that a block will return a truthy value.
 # If it doesn't or if it has an error, the test will be logged as failing.
 def assert name = nil
-  Tet.in_group(name) do
-    result = false
+    Tet.in_group(name) do
+      result = false
 
-    begin
-      result = yield
+      Tet.stop_nesting("NESTED IN ASSERT: #{name}") do
+        begin
+          result = yield
 
-      if result
-        Tet.pass
-      else
-        Tet.fail
+          if result
+            Tet.log_pass
+          else
+            Tet.log_fail
+          end
+        rescue StandardError => error_object
+          Tet.log_error(error_object)
+        end
       end
-    rescue StandardError => error_object
-      Tet.error(error_object)
-    end
 
-    !!result
-  end
+      !!result
+    end
 end
 
 # Declare that a block will have an error.
@@ -46,15 +48,17 @@ def err name = nil, expect: StandardError
   Tet.in_group(name) do
     result = false
 
-    begin
-      yield
-      Tet.fail
-    rescue StandardError => error_object
-      if expect >= error_object.class
-        result = true
-        Tet.pass
-      else
-        Tet.wrong_error(expected: expect, got: error_object)
+    Tet.stop_nesting("NESTED IN ERR: #{name}") do
+      begin
+        yield
+        Tet.log_fail
+      rescue StandardError => error_object
+        if expect >= error_object.class
+          result = true
+          Tet.log_pass
+        else
+          Tet.log_wrong_error(expected: expect, got: error_object)
+        end
       end
     end
 
@@ -74,6 +78,7 @@ module Tet
   @test_count    = 0
   @fail_count    = 0
   @err_count     = 0
+  @nested_ban    = false
 
   class << self
     attr_reader :messages, :test_count, :fail_count, :err_count
@@ -85,7 +90,11 @@ module Tet
       @current_group << name.to_s if name
 
       begin
-        result = yield
+        if @nested_ban
+          log_fail @nested_ban
+        else
+          result = yield
+        end
       rescue StandardError => error_object
         log_error error_object, "ERROR IN GROUP"
       end
@@ -93,6 +102,12 @@ module Tet
       @current_group.pop if name
 
       result
+    end
+
+    def stop_nesting message
+      @nested_ban = message
+      yield
+      @nested_ban = false
     end
 
     # Log a passing test.

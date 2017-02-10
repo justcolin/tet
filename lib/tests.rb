@@ -18,8 +18,12 @@ group "#assert" do
   assert("failing returns false") { result.equal?(false) }
 
   should_fail do
-    assert("falsy blocks fail")     { nil }
+    assert("falsy blocks fail") { nil }
     assert("empty assertions fail") { }
+
+    assert("can not nest #assert") { assert("nested") { true            }; nil }
+    assert("can not nest #group")  { group("nested")  { assert { true } }; nil }
+    assert("can not nest #err")    { err("nested")    { not_a_method    }; nil }
   end
 
   should_err do
@@ -66,5 +70,8 @@ group "#err" do
     err("empty assertions fail") { }
     err("wrong class fails", expect: ArgumentError) { not_a_method }
 
+    err("can not nest #err")    { err("nested")    { not_a_method    }; 1 + 1 }
+    err("can not nest #assert") { assert("nested") { true            }; 1 + 1 }
+    err("can not nest #group")  { group("nested")  { assert { true } }; 1 + 1 }
   end
 end
