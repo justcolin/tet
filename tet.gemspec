@@ -1,6 +1,6 @@
 Gem::Specification.new do |s|
-  s.name     = 'tet'
-  s.version  = '1.4.0'
+  s.name    = 'tet'
+  s.version = '1.5.0'
 
   s.summary     = "Barely a test framework"
   s.homepage    = 'https://github.com/justcolin/tet'
