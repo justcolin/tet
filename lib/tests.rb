@@ -1,77 +1,51 @@
-# Copyright (C) 2016 Colin Fulton
+# Copyright (C) 2017 Colin Fulton
 # All rights reserved.
 #
 # This software may be modified and distributed under the
 # terms of the three-clause BSD license. See LICENSE.txt
 # (located in root directory of this project) for details.
 
-require_relative "./tet"
-require_relative "./test_helpers"
+require_relative './tet'
 
-group "#assert" do
-  assert("truthy blocks pass") { true }
+class IntendedError      < StandardError; end
+class IntendedErrorChild < IntendedError; end
 
-  result = assert { true }
-  assert("passing returns true") { result.equal?(true) }
+puts ".!?!!?!!!!!!.!.??????? (expected result)"
 
-  result = should_fail { assert { false } }
-  assert("failing returns false") { result.equal?(false) }
+assert('true blocks pass')  { true  }
+assert('false blocks fail') { false }
 
-  should_fail do
-    assert("falsy blocks fail") { nil }
-    assert("empty assertions fail") { }
+assert('errors are caught') { raise IntendedError }
 
-    assert("can not nest #assert") { assert("nested") { true            }; nil }
-    assert("can not nest #group")  { group("nested")  { assert { true } }; nil }
-    assert("can not nest #err")    { err("nested")    { not_a_method    }; nil }
-  end
+group '#group' do
+  assert('first failure')  { false }
+  assert('second failure') { false }
 
-  should_err do
-    assert("errors are caught and count as failures") { not_a_method }
-  end
+  group('errors are caught') { raise IntendedError }
 end
 
-group "#group" do
-  expected = "example output"
-  result   = group("EXAMPLE") do
-               assert("EXAMPLE") { true }
-               expected
-             end
-  assert("returns output of block") { result == expected }
-
-  return_value = should_err { group { raise "Example Error" } }
-  assert("returns nil when the block throws an error") { return_value.nil? }
-
-  group 'fails when empty' do
-    should_fail { group('group without content') { } }
-  end
-
-  group "can have classes for names" do
-    group String do
-      should_fail { assert { false } }
-    end
-  end
+group 'anything can be a label' do
+  assert(:a_symbol)    { false }
+  assert(Class)        { false }
+  assert(Enumerable)   { false }
+  assert(true)         { false }
+  assert({x: 1, y: 2}) { false }
+  assert(nil)          { false }
 end
 
-group "#err" do
-  err("passes when there is an error") { not_a_method }
+group '#err' do
+  err('errors pass')     { raise IntendedError }
+  err('non-errors fail') { true }
 
-  err("specify an exception class",       expect: NameError) { not_a_method }
-  err("specify a parent exception class", expect: Exception) { not_a_method }
+  err('correct errors pass',   expect: IntendedError)      { raise IntendedError }
+  err('incorrect errors err', expect: IntendedErrorChild) { raise IntendedError }
+end
 
-  result = err { not_a_method }
-  assert("passing returns true") { result.equal?(true) }
-
-  result = should_fail { err { 1 + 1 } }
-  assert("failing returns false") { result.equal?(false) }
-
-  should_fail do
-    err("no errors fails") { 1 + 1 }
-    err("empty assertions fail") { }
-    err("wrong class fails", expect: ArgumentError) { not_a_method }
-
-    err("can not nest #err")    { err("nested")    { not_a_method    }; 1 + 1 }
-    err("can not nest #assert") { assert("nested") { true            }; 1 + 1 }
-    err("can not nest #group")  { group("nested")  { assert { true } }; 1 + 1 }
-  end
+group 'should not nest' do
+  assert('#assert in #assert') { assert    { true                } }
+  assert('#group in #assert')  { group('') { 'empty #group'      } }
+  assert('#err in #assert')    { err       { raise IntendedError } }
+  err('#assert in #err')       { assert    { true                } }
+  err('#group in #err')        { group('') { 'empty #group'      } }
+  err('#err in #err')          { err       { raise IntendedError } }
 end

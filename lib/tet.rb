@@ -1,220 +1,285 @@
-# Copyright (C) 2016 Colin Fulton
+# Copyright (C) 2017 Colin Fulton
 # All rights reserved.
 #
 # This software may be modified and distributed under the
 # terms of the three-clause BSD license. See LICENSE.txt
 # (located in root directory of this project) for details.
 
-# Label all tests within a block.
-def group name = nil
-  before = Tet.test_count
-
-  Tet.in_group(name) do
-    yield.tap do
-      if Tet.test_count == before
-        Tet.log_fail("EMPTY GROUP")
-      end
-    end
-  end
+# Label a block of tests
+def group label, &block
+  Tet.run(
+    label: label,
+    test:  block
+  )
 end
 
-# Declare that a block will return a truthy value.
-# If it doesn't or if it has an error, the test will be logged as failing.
-def assert name = nil
-    Tet.in_group(name) do
-      result = false
-
-      Tet.stop_nesting("NESTED IN ASSERT: #{name}") do
-        begin
-          result = yield
-
-          if result
-            Tet.log_pass
-          else
-            Tet.log_fail
-          end
-        rescue StandardError => error_object
-          Tet.log_error(error_object)
-        end
-      end
-
-      !!result
-    end
+# Assert that a block will return a truthy value
+def assert label = '', &block
+  Tet.run(
+    label:   label,
+    test:    block,
+    no_nest: true,
+    truthy:  -> { Tet.passed },
+    falsy:   -> { Tet.failed }
+  )
 end
 
-# Declare that a block will have an error.
-# If it doesn't the test will be logged as failing.
-def err name = nil, expect: StandardError
-  Tet.in_group(name) do
-    result = false
-
-    Tet.stop_nesting("NESTED IN ERR: #{name}") do
-      begin
-        yield
-        Tet.log_fail
-      rescue StandardError => error_object
-        if expect >= error_object.class
-          result = true
-          Tet.log_pass
-        else
-          Tet.log_wrong_error(expected: expect, got: error_object)
-        end
-      end
-    end
-
-    result
-  end
+# Assert that a block will err
+def err label = '', expect: StandardError, &block
+  Tet.run(
+    label:   label,
+    test:    block,
+    no_nest: true,
+    truthy:  -> { Tet.failed },
+    falsy:   -> { Tet.failed },
+    error:   ->(caught) {
+               (expect >= caught.class) ? Tet.passed : Tet.erred(caught, expect)
+             }
+  )
 end
 
-# A namespace for all of the helper methods.
+
+
+# A namespace for all of the helper methods and classes.
 module Tet
-  PassChar  = "."
-  FailChar  = "F"
-  ErrorChar = "!"
-  Indent    = "    "
+  # Print all the reports after all the tests have run
+  at_exit do
+    unless Stats.empty?
+      puts
+      puts_report 'Failures',   Messages.failure_report
+      puts_report 'Exceptions', Messages.error_report
+      puts_report 'Statistics', Stats.report
+    end
+  end
 
-  @messages      = []
-  @current_group = []
-  @test_count    = 0
-  @fail_count    = 0
-  @err_count     = 0
-  @nested_ban    = false
 
+
+  # An exception class to distinguish errors from incorrectly written tests
+  class TestError < StandardError; end
+
+  # Object oriented way to do string formatting
+  module StringFormatting
+    refine String do
+      def indent
+        gsub(/^/, '    ')
+      end
+
+      def to_label
+        self
+      end
+    end
+
+    refine Module do
+      def to_label
+        name
+      end
+    end
+
+    refine Object do
+      def to_label
+        inspect
+      end
+    end
+  end
+
+  using StringFormatting
+
+
+
+  # Helpers for building test methods
   class << self
-    attr_reader :messages, :test_count, :fail_count, :err_count
+    # Call when an assertion has passed
+    def passed
+      Stats.passed
+    end
 
-    # Store the group name for the duration of calling the given block.
-    def in_group name
-      result = nil
+    # Call when an assertion has failed
+    def failed
+      Stats.failed
+      Messages.failed
+    end
 
-      @current_group << name.to_s if name
+    # Call when an assertion has erred
+    def erred caught, expected = nil
+      Stats.erred
+      Messages.erred(caught, expected)
+    end
 
-      begin
-        if @nested_ban
-          log_fail @nested_ban
-        else
-          result = yield
+    # Run a block as a test
+    def run label:,
+            truthy:  -> { },
+            falsy:   -> { },
+            error:   ->(caught) { erred(caught) },
+            no_nest: false,
+            test:
+
+      Messages.with_label(label) do
+        nesting_guard(no_nest) do
+          begin
+            test.call ? truthy.call : falsy.call
+          rescue TestError => caught
+            erred(caught)
+          rescue StandardError => caught
+            error.call(caught)
+          end
         end
-      rescue StandardError => error_object
-        log_error error_object, "ERROR IN GROUP"
       end
 
-      @current_group.pop if name
-
-      result
-    end
-
-    def stop_nesting message
-      @nested_ban = message
-      yield
-      @nested_ban = false
-    end
-
-    # Log a passing test.
-    def log_pass
-      print_now PassChar
-
-      @test_count += 1
-    end
-
-    # Log a failing test.
-    def log_fail *messages, letter: FailChar
-      print_now letter
-
-      @test_count += 1
-      @fail_count += 1
-
-      group           = @current_group.dup
-      current_section = @messages
-
-      # Walk down the tree of messages until either you find the current group's
-      # array of messages OR the last section in common with the current group.
-      until group.empty? || group.first != current_section[-2]
-        group.shift
-        current_section = current_section.last
-      end
-
-      # If the messages were missing parts of this group fill out the remaining
-      # group names.
-      until group.empty?
-        current_section << group.shift << []
-        current_section = current_section.last
-      end
-
-      # Append the new messages onto the current section.
-      current_section.concat(messages)
-    end
-
-    # Log an error.
-    def log_error error_object, *messages
-      @err_count += 1
-      log_fail *messages, *format_error(error_object), letter: ErrorChar
-    end
-
-    # Log test which raised the wrong error.
-    def log_wrong_error expected:, got:
-      log_fail "EXPECTED: #{expected}", *format_error(got)
-    end
-
-    # Print stats and messages for all the failing tests.
-    def render_result
-      puts "\n" unless @test_count.zero?
-
-      print "#{plural @test_count, 'result'}, "
-
-      if (@fail_count + @err_count).zero?
-        print "all good!"
-      else
-        print "#{plural @fail_count, 'fail'}"
-        print " (including #{plural @err_count, 'error'})" unless @err_count.zero?
-      end
-
-      print "\n"
-
-      unless @messages.empty?
-        puts "\nFailed tests:"
-        puts indent(@messages)
-      end
+      nil
     end
 
     private
 
-    # Format an error message so #indent will render it properly
-    def format_error error_object
-      [
-        "ERROR: #{error_object.class}",
-        [
-          "#{error_object.message}",
-          error_object.backtrace
-        ]
-      ]
-    end
-
-    # Format an array of strings by joining them with \n and indenting nested
-    # arrays deeper than their parents.
-    def indent input, amount = 0
-      case input
-      when String
-        input.gsub(/^/, Indent * amount)
-      when Array
-        input
-          .reject(&:empty?)
-          .map { |part| indent(part, amount + 1) }
-          .join("\n")
+    # Print out a report to stdout
+    def puts_report header, content
+      unless content.empty?
+        puts
+        puts "#{header}:"
+        puts content.indent
       end
     end
 
-    # Pluralize the given word.
-    def plural amount, word
-      "#{amount} #{word}#{amount != 1 ? "s" : ""}"
-    end
-
-    # Prevent delays in printing results.
-    def print_now string
-      print string
-      $stdout.flush
+    # Check and set a flag to prevent test blocks from nesting
+    def nesting_guard guard_state
+      raise TestError, 'assertions can not be nested' if @nesting_banned
+      @nesting_banned = guard_state
+      yield
+    ensure
+      @nesting_banned = false
     end
   end
 
-  at_exit { Tet.render_result }
+
+
+  # Tracks and reports statistics about the tests that have run
+  module Stats
+    Counts = { passed: 0,  failed: 0,  erred: 0  }
+    Marks  = { passed: ?., failed: ?!, erred: ?? }
+
+    class << self
+      # Call when an assertion has passed
+      def passed
+        log :passed
+      end
+
+      # Call when an assertion has failed
+      def failed
+        log :failed
+      end
+
+      # Call when an assertion has erred
+      def erred
+        log :erred
+      end
+
+      # Returns true if no statistics have been logged
+      def empty?
+        Counts.values.inject(&:+).zero?
+      end
+
+      # Returns a string with statistics about the tests that have been run
+      def report
+        errors = Counts[:erred]
+        fails  = Counts[:failed]
+        passes = Counts[:passed]
+
+        output = []
+        output << "Errors: #{errors}" unless errors.zero?
+        output << "Failed: #{fails}"
+        output << "Passed: #{passes}"
+
+        output.join(?\n)
+      end
+
+      private
+
+      # Log an event and print a mark to show progress is being made on tests
+      def log type
+        Counts[type] += 1
+
+        print Marks[type]
+        $stdout.flush
+      end
+    end
+  end
+
+
+  # Tracks and reports messages for each test
+  module Messages
+    Labels  = []
+    Results = []
+    Errors  = []
+
+    class << self
+      # Add a label to all subsequent messages
+      def with_label label
+        Labels.push(label)
+        yield
+      ensure
+        Labels.pop
+      end
+
+      # Call when an assertion has failed
+      def failed
+        add_result!
+      end
+
+      # Call when an assertion has passed
+      def erred caught, expected = nil
+        number = Stats::Counts[:erred]
+        label  = "EXCEPTION_#{number}"
+        label << " (expected: #{expected})" if expected
+
+        with_label(label) { add_result! }
+
+        Errors.push(error_message(caught, number))
+      end
+
+      # Returns a string with details about all failed tests
+      def failure_report
+        Results.join(?\n)
+      end
+
+      # Returns a string with details about all errors
+      def error_report
+        Errors.join("\n\n")
+      end
+
+      private
+
+      # Add a message for a new result using the current labels
+      def add_result!
+        Results.push(
+          Labels.map { |raw| raw.to_label }
+                .reject(&:empty?)
+                .join('  ::  ')
+        )
+      end
+
+      def format_label label
+        case label
+        when Module
+          label.name
+        when String
+          label.to_s
+        else
+          label.inspect
+        end
+      end
+
+      # Format an error into a message string
+      def error_message error, number
+        error_message  = error.to_s
+        error_class    = error.class.to_s
+        error_message << " (#{error.class})" if error_message != error_class
+
+        summary  = "#{number}. #{error_message}"
+        details  = error.backtrace
+                        .reject { |line| line.start_with?(__FILE__) }
+                        .map    { |line| line.indent }
+
+        details.unshift(summary).join(?\n)
+      end
+    end
+  end
 end
