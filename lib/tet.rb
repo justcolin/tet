@@ -44,12 +44,10 @@ end
 module Tet
   # Print all the reports after all the tests have run.
   at_exit do
-    unless Stats.empty?
-      puts
-      puts_report 'Failures',   Messages.failure_report
-      puts_report 'Exceptions', Messages.error_report
-      puts_report 'Statistics', Stats.report
-    end
+    puts
+    puts_report 'Failures',   failure_report
+    puts_report 'Exceptions', error_report
+    puts_report 'Statistics', statistics_report
   end
 
 
@@ -66,19 +64,19 @@ module Tet
         gsub(/^/, '    ')
       end
 
-      def to_label
+      def to_label_string
         self
       end
     end
 
     refine Module do
-      def to_label
+      def to_label_string
         name
       end
     end
 
     refine Object do
-      def to_label
+      def to_label_string
         inspect
       end
     end
@@ -92,19 +90,20 @@ module Tet
   class << self
     # Call when an assertion has passed.
     def passed
-      Stats.passed
+      print_now ?.
+      Data.add_note(:pass)
     end
 
     # Call when an assertion has failed.
     def failed
-      Stats.failed
-      Messages.failed
+      print_now ?!
+      Data.add_note(:fail)
     end
 
     # Call when an assertion has erred.
     def erred caught, expected = nil
-      Stats.erred
-      Messages.erred(caught, expected)
+      print_now ??
+      Data.add_note(:error, caught: caught, expected: expected)
     end
 
     # Run a block as a test.
@@ -115,7 +114,7 @@ module Tet
             no_nest: false,
             test:
 
-      Messages.with_label(label) do
+      Data.with_label(label) do
         nesting_guard(no_nest) do
           begin
             test.call ? truthy.call : falsy.call
@@ -130,7 +129,13 @@ module Tet
       nil
     end
 
-    private
+  private
+
+    # Print out a string immediately. Calling #print alone may have a delay.
+    def print_now string
+      print string
+      $stdout.flush
+    end
 
     # Print out a report to stdout.
     def puts_report header, content
@@ -139,6 +144,60 @@ module Tet
         puts "#{header}:"
         puts content.indent
       end
+    end
+
+    # Render a string with details about all of the test run.
+    def statistics_report
+      pass_count  = Data.count_type(:pass)
+      fail_count  = Data.count_type(:fail)
+      error_count = Data.count_type(:error)
+
+      output = []
+      output << "Errors: #{error_count}" unless error_count.zero?
+      output << "Failed: #{fail_count}"  unless fail_count.zero?
+      output << "Passed: #{pass_count}"  unless pass_count.zero?
+
+      output.join(?\n)
+    end
+
+    # Render a string with details about all of the failures encountered.
+    def failure_report
+      errors = Data.select_type(:error)
+
+      Data.select_type(:fail, :error)
+          .map do |node|
+            node.label
+                .tap do |label|
+                  if node.type == :error
+                    error_note  = "EXCEPTION_#{1 + errors.index(node)}"
+                    expected    = node.data[:expected]
+                    error_note << " (expected: #{expected}" if expected
+
+                    label << error_note
+                  end
+                end
+                .map(&:to_label_string)
+                .join('  ::  ')
+          end
+          .join(?\n)
+    end
+
+    # Render a string with details about all of the errors encountered.
+    def error_report
+      Data.select_type(:error)
+          .map.with_index do |node, index|
+            error    = node.data[:caught]
+            message  = error.to_s
+            message << " (#{error.class})" if message != error.class.to_s
+            summary  = "#{index + 1}. #{message}"
+
+            error.backtrace
+                 .reject { |line| line.start_with?(__FILE__) }
+                 .map    { |line| line.indent }
+                 .unshift(summary)
+                 .join(?\n)
+          end
+          .join("\n\n")
     end
 
     # Check and set a flag to prevent test blocks from nesting
@@ -152,136 +211,93 @@ module Tet
   end
 
 
+  # Because tests are represented as series of nested groups containing
+  # assertions, the test data is stored in a tree.
+  module Tree
+    module Basics
+      include Enumerable
 
-  # Tracks and reports statistics about the tests that have run
-  module Stats
-    Counts = { passed: 0,  failed: 0,  erred: 0  }
-    Marks  = { passed: ?., failed: ?!, erred: ?? }
-
-    class << self
-      # Call when an assertion has passed
-      def passed
-        log :passed
+      # Create and append a new node to this node, returning the new node.
+      def append_node type, data
+        Node.new(type: type, data: data, parent: self)
+            .tap { |node| @children << node }
       end
 
-      # Call when an assertion has failed
-      def failed
-        log :failed
-      end
-
-      # Call when an assertion has erred
-      def erred
-        log :erred
-      end
-
-      # Returns true if no statistics have been logged
-      def empty?
-        Counts.values.inject(&:+).zero?
-      end
-
-      # Returns a string with statistics about the tests that have been run
-      def report
-        errors = Counts[:erred]
-        fails  = Counts[:failed]
-        passes = Counts[:passed]
-
-        output = []
-        output << "Errors: #{errors}" unless errors.zero?
-        output << "Failed: #{fails}"
-        output << "Passed: #{passes}"
-
-        output.join(?\n)
-      end
-
-      private
-
-      # Log an event and print a mark to show progress is being made on tests
-      def log type
-        Counts[type] += 1
-
-        print Marks[type]
-        $stdout.flush
-      end
-    end
-  end
-
-
-  # Tracks and reports messages for each test
-  module Messages
-    Labels  = []
-    Results = []
-    Errors  = []
-
-    class << self
-      # Add a label to all subsequent messages
-      def with_label label
-        Labels.push(label)
-        yield
-      ensure
-        Labels.pop
-      end
-
-      # Call when an assertion has failed
-      def failed
-        add_result!
-      end
-
-      # Call when an assertion has passed
-      def erred caught, expected = nil
-        number = Stats::Counts[:erred]
-        label  = "EXCEPTION_#{number}"
-        label << " (expected: #{expected})" if expected
-
-        with_label(label) { add_result! }
-
-        Errors.push(error_message(caught, number))
-      end
-
-      # Returns a string with details about all failed tests
-      def failure_report
-        Results.join(?\n)
-      end
-
-      # Returns a string with details about all errors
-      def error_report
-        Errors.join("\n\n")
-      end
-
-      private
-
-      # Add a message for a new result using the current labels
-      def add_result!
-        Results.push(
-          Labels.map { |raw| raw.to_label }
-                .reject(&:empty?)
-                .join('  ::  ')
-        )
-      end
-
-      def format_label label
-        case label
-        when Module
-          label.name
-        when String
-          label.to_s
-        else
-          label.inspect
+      # Recursively iterate over each node in the test data tree in the order
+      # that they were added.
+      def each &block
+        @children.each do |node|
+          block.call(node)
+          node.each(&block)
         end
       end
+    end
 
-      # Format an error into a message string
-      def error_message error, number
-        error_message  = error.to_s
-        error_class    = error.class.to_s
-        error_message << " (#{error.class})" if error_message != error_class
+    # The root of the tree with methods to terminate Node methods which search
+    # up the tree, as well as methods for enumerating over the test data, adding
+    # labels and adding nodes.
+    class Root
+      include Basics
 
-        summary  = "#{number}. #{error_message}"
-        details  = error.backtrace
-                        .reject { |line| line.start_with?(__FILE__) }
-                        .map    { |line| line.indent }
+      def initialize
+        @children     = []
+        @current_node = self
+      end
 
-        details.unshift(summary).join(?\n)
+      # Terminate Node#label.
+      def label
+        []
+      end
+
+      # Run a block where any notes added will be inside a new label node.
+      def with_label label
+        previous      = @current_node
+        @current_node = add_note(:label, label)
+        yield
+      ensure
+        @current_node = previous
+        self
+      end
+
+      # Add a node to note some data within the node that is currently active.
+      def add_note type, data = nil
+        @current_node.append_node(type, data)
+      end
+
+      # Get an array of all nodes of some type in the order they were added.
+      def select_type *types
+        select { |node| types.include?(node.type) }
+      end
+
+      # Count the number of nodes of a given type.
+      def count_type type
+        select_type(type).size
+      end
+    end
+
+    # A node to store data about that some point in the test tree
+    class Node
+      include Basics
+      attr_reader :data, :type
+
+      def initialize parent:, type:, data: nil
+        @type     = type
+        @data     = data
+        @parent   = parent
+        @children = []
+      end
+
+      # Generate the array of labels that identify this point in the tree.
+      def label
+        if @type == :label
+          @parent.label + [@data]
+        else
+          @parent.label
+        end
       end
     end
   end
+
+  # The instance of the Tree data structure that stores all of the test results.
+  Data = Tree::Root.new
 end
