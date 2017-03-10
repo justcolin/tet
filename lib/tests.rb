@@ -37,7 +37,7 @@ group '#err' do
   err('errors pass')     { raise IntendedError }
   err('non-errors fail') { true }
 
-  err('correct errors pass',   expect: IntendedError)      { raise IntendedError }
+  err('correct errors pass',  expect: IntendedError)      { raise IntendedError }
   err('incorrect errors err', expect: IntendedErrorChild) { raise IntendedError }
 end
 

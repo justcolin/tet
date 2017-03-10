@@ -5,7 +5,7 @@
 # terms of the three-clause BSD license. See LICENSE.txt
 # (located in root directory of this project) for details.
 
-# Label a block of tests
+# Label a block of tests.
 def group label, &block
   Tet.run(
     label: label,
@@ -13,7 +13,7 @@ def group label, &block
   )
 end
 
-# Assert that a block will return a truthy value
+# Assert that a block will return a truthy value.
 def assert label = '', &block
   Tet.run(
     label:   label,
@@ -24,7 +24,7 @@ def assert label = '', &block
   )
 end
 
-# Assert that a block will err
+# Assert that a block will err.
 def err label = '', expect: StandardError, &block
   Tet.run(
     label:   label,
@@ -32,9 +32,9 @@ def err label = '', expect: StandardError, &block
     no_nest: true,
     truthy:  -> { Tet.failed },
     falsy:   -> { Tet.failed },
-    error:   ->(caught) {
+    error:   ->(caught) do
                (expect >= caught.class) ? Tet.passed : Tet.erred(caught, expect)
-             }
+             end
   )
 end
 
@@ -42,7 +42,7 @@ end
 
 # A namespace for all of the helper methods and classes.
 module Tet
-  # Print all the reports after all the tests have run
+  # Print all the reports after all the tests have run.
   at_exit do
     unless Stats.empty?
       puts
@@ -54,10 +54,12 @@ module Tet
 
 
 
-  # An exception class to distinguish errors from incorrectly written tests
+  # An exception class to distinguish errors from incorrectly written tests.
   class TestError < StandardError; end
 
-  # Object oriented way to do string formatting
+
+
+  # Object oriented ways to do string formatting.
   module StringFormatting
     refine String do
       def indent
@@ -86,26 +88,26 @@ module Tet
 
 
 
-  # Helpers for building test methods
+  # Helpers for building test methods.
   class << self
-    # Call when an assertion has passed
+    # Call when an assertion has passed.
     def passed
       Stats.passed
     end
 
-    # Call when an assertion has failed
+    # Call when an assertion has failed.
     def failed
       Stats.failed
       Messages.failed
     end
 
-    # Call when an assertion has erred
+    # Call when an assertion has erred.
     def erred caught, expected = nil
       Stats.erred
       Messages.erred(caught, expected)
     end
 
-    # Run a block as a test
+    # Run a block as a test.
     def run label:,
             truthy:  -> { },
             falsy:   -> { },
@@ -130,7 +132,7 @@ module Tet
 
     private
 
-    # Print out a report to stdout
+    # Print out a report to stdout.
     def puts_report header, content
       unless content.empty?
         puts

@@ -4,7 +4,7 @@
 - Relatively nice looking output
 - Nothing else
 
-I wanted a micro test framework to test a parser for a larger test framework that I was writing for fun, thus `tet` was born. Tet is a *very* minimal test framework designed for simple projects.
+I wanted a micro test framework to test a parser for a larger test framework that I was writing for fun, thus Tet was born. Tet is a *very* minimal test framework designed for simple projects.
 
 Does the world need another test framework? **No**.
 
@@ -14,6 +14,8 @@ Is Tet the product of boredom and yak shaving? **Yes**.
 
 To use Tet, install the gem and add `require "tet"` to your test files. Run tests by evaluating your test files using `ruby`.
 
+As tests run, a `.` is printed for every assertion that passes, a `!` is printed for every assertion that fails, and a `?` is printed for every error. If all goes well, you see a peaceful stream of dots. If things start to go poorly, the test output looks like a lot of censored expletives. After everything has run, a report with details about the test results is printed.
+
 ### Assertions
 
 There are two assertion methods:
@@ -22,7 +24,7 @@ There are two assertion methods:
 
   ```ruby
     assert { "this is a String".is_a?(String) } # Passes
-    assert { 1 == 2 } # Fails becaue the block returned a falsey value
+    assert { 1 == 2 } # Fails because the block returned a falsy value
     assert { not_a_method } # Fails because there was an error
   ```
 

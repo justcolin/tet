@@ -1,4 +1,4 @@
-Copyright (c) 2016, Colin Fulton
+Copyright (c) 2017, Colin Fulton
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or
