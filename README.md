@@ -14,38 +14,32 @@ Is Tet the product of boredom and yak shaving? **Yes**.
 
 To use Tet, install the gem and add `require "tet"` to your test files. Run tests by evaluating your test files using `ruby`.
 
-As tests run, a `.` is printed for every assertion that passes, a `!` is printed for every assertion that fails, and a `?` is printed for every error. If all goes well, you see a peaceful stream of dots. If things start to go poorly, the test output looks like a lot of censored expletives. After everything has run, a report with details about the test results is printed.
-
 ### Assertions
 
 There are two assertion methods:
 
-- **#assert** takes a block. If the block returns a truthy value, the test passes. If not, it fails.
+- **#assert** takes a block and a test name. If the block returns a truthy value, the test passes. If not, it fails.
 
   ```ruby
-    assert { "this is a String".is_a?(String) } # Passes
-    assert { 1 == 2 } # Fails because the block returned a falsy value
-    assert { not_a_method } # Fails because there was an error
+    # Passes:
+    assert('strings are strings') { "this is a String".is_a?(String) }
+
+    # Fails because the block returned a falsy value:
+    assert('silly math') { 1 == 2 }
+
+    # Fails because there was an error:
+    assert('calling a nonexistent function') { not_a_method }
   ```
 
-- **#err** takes a block. If the block raises an exception, the test passes. If not, it fails.
-
-  If you pass in an exception class to the `expect` argument the test will only pass if the exception raised within the block is an instance of that class or one of its subclasses.
+- **#error** takes a block, a test name and an expected error class. If the block raises an exception of the given class (or a descendant of that class), the test passes. If not, it fails.
 
   ```ruby
-    err { 1 == 2 } # Fails because there was no error
-    err { not_a_method } # Passes because there was an error
+    # Passes because there was a NameError:
+    error('nonexistent methods raise errors', expect: NameError) { not_a_method }
 
-    err(expect: NameError) { not_a_method } # Passes because there was a NameError
-    err(expect: ArgumentError) { not_a_method } # Fails the error wasn't an ArgumentError
+    # Fails because the error wasn't an ArgumentError:
+    error('expecting a different error', expect: ArgumentError) { not_a_method }
   ```
-
-Both of these methods optionally take a `name` as the first argument to let you note what the assertion does:
-
-```ruby
-  assert("all is right with the world") { 1 == 1 }
-  err("no method errors work") { nonexistent_method }
-```
 
 ### Groups
 
@@ -58,8 +52,8 @@ If you want to label a group of assertions or group of groups you can use the **
     group "here are some assertions" do
       number = string.to_i
 
-      assert { number + 2 == 42 }
-      assert { number.is_a?(Numeric) }
+      assert('addition works') { number + 2 == 42 }
+      assert('numbers are numbers') { number.is_a?(Numeric) }
     end
 
     group "more assertions" do
