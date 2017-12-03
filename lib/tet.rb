@@ -7,34 +7,42 @@
 
 module TetCore
   INDENT_DEPTH = 4
-  SEPERATOR    = '  :  '
-  FAIL_HEADER  = 'FAIL  :  '
-  ERROR_HEADER = 'ERROR :  '
+  SEPERATOR    = '  |  '
+  FAIL_HEADER  = 'FAIL:  '
+  ERROR_HEADER = 'ERROR: '
 
-  @previous_passed = false
-  @messages        = []
-  @counts          = Struct.new(:tests, :fails, :errors)
-                          .new(0,      0,      0)
+  @prev_printed = false
+  @messages     = []
+  @counts       = Struct.new(:tests, :fails, :errors)
+                        .new(0,      0,      0)
+
+  # Output totals at the end of the test run.
+  at_exit do
+    puts "\nTests: #{@counts.tests}   Fails: #{@counts.fails}   Errors: #{@counts.errors}"
+  end
 
   class << self
+    # Record an assertion.
     def assert
       @counts.tests += 1
     end
 
+    # Record a passing assertion.
     def pass
-      print ?.
-      @previous_passed = true
+      checked_print ?.
     end
 
+    # Record a failing assertion.
     def fail
       @counts.fails += 1
       puts_failure_data(header: FAIL_HEADER)
     end
 
+    # Run a block under a certain name, catching and printing errors.
     def group name
       @messages << name
       yield
-    rescue Exception => caught
+    rescue StandardError => caught
       @counts.errors += 1
       puts_failure_data(
         header:          ERROR_HEADER,
@@ -44,24 +52,48 @@ module TetCore
       @messages.pop
     end
 
-    def puts_failure_data header:, additional_info: []
-      puts if @previous_passed
-      puts header + @messages.join(SEPERATOR)
-
-      additional_info.each.with_index do |text, index|
-        puts indent(text, index + 1)
-      end
-
-      @previous_passed = false
+    # Add a line break if the last output was a #print instead of a #puts.
+    def break_after_print
+      checked_puts if @prev_printed
     end
+
+    # Alias original #puts and #p methods.
+    alias_method :real_puts, :puts
+    alias_method :real_p, :p
+    public :real_puts
+    public :real_p
 
     private
 
+    # Output data related to a failure.
+    def puts_failure_data header:, additional_info: []
+      break_after_print
+      checked_puts header + @messages.join(SEPERATOR)
+
+      additional_info.each.with_index do |text, index|
+        checked_puts indent(text, index + 1)
+      end
+    end
+
+    # Perform a #puts and then set a flag for future line breaks.
+    def checked_puts object = ''
+      real_puts object
+      @prev_printed = false
+    end
+
+    # Perform a #print and then set a flag for future line breaks.
+    def checked_print object = ''
+      print object
+      @prev_printed = true
+    end
+
+    # Indent each line of a given string by a given amount.
     def indent string, amount
       indent_string = ' ' * amount * INDENT_DEPTH
       string.gsub(/^/, indent_string)
     end
 
+    # Convert an error object into an array of strings describing the error.
     def error_to_info_array error
       [
         "#{error.class}: #{error.message}",
@@ -71,16 +103,14 @@ module TetCore
       ]
     end
   end
-
-  at_exit {
-    puts "\nTests: #{@counts.tests}   Fails: #{@counts.fails}   Errors: #{@counts.errors}"
-  }
 end
 
-def group name, &block
-  TetCore.group(name, &block)
+# Group together assertions and groups under a given name.
+def group name
+  TetCore.group(name) { yield }
 end
 
+# Assert that a given block will return true.
 def assert name
   TetCore.group(name) do
     TetCore.assert
@@ -89,8 +119,8 @@ def assert name
   end
 end
 
-
-def error name, expect: StandardError
+# Assert that a given block will raise an expected error.
+def error name, expect:
   TetCore.group(name) do
     begin
       TetCore.assert
@@ -101,4 +131,18 @@ def error name, expect: StandardError
       TetCore.fail
     end
   end
+end
+
+# A redefined version of #puts which ensures a line break before the printed
+# object (for easier debugging).
+def puts object = ''
+  TetCore.break_after_print
+  TetCore.real_puts(object)
+end
+
+# A redefined version of #p which ensures a line break before the printed
+# object (for easier debugging).
+def p object
+  TetCore.break_after_print
+  TetCore.real_p(object)
 end

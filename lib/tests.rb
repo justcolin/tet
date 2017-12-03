@@ -7,66 +7,69 @@
 
 require_relative './tet'
 
+SHOW_EXPECTED = false
 
-module TetCore
-  # Print a prefix before an assertion in block.
-  def self.with_prefix prefix
-    print prefix
-    yield
-  ensure
-    puts if @previous_passed
-    @previous_passed = false
+def prefix string
+  if SHOW_EXPECTED
+    TetCore.break_after_print
+    print string
   end
 end
 
-WITH_PREFIX = true
+def pass; prefix 'PASS  = '; end
+def fail; prefix 'FAIL  = '; end
+def err;  prefix 'ERROR = '; end
 
-def pass
-  WITH_PREFIX ? TetCore.with_prefix('PASS > ') { yield } : yield
-end
-
-def fail
-  WITH_PREFIX ? TetCore.with_prefix('FAIL > ') { yield } : yield
-end
-
-def err
-  WITH_PREFIX ? TetCore.with_prefix('ERROR > ') { yield } : yield
+def test_between
+  assert('Intentional failure') { false }
+  yield
+  assert('') { true }
+  yield
+  assert('Intentional failure') { false }
 end
 
 class IntendedError < StandardError; end
 
 group('#assert') do
-  pass { assert('True assertions pass') { true } }
-  fail { assert('False assertions fail') { false } }
-  err { assert('Errors are caught') { raise IntendedError.new('error message') } }
+  pass; assert('True assertions pass') { true }
+  fail; assert('False assertions fail') { false }
+  err; assert('Errors are caught') { raise IntendedError.new('error message') }
+
+  puts 'Multiple passes in a row show on one line:'
+  assert('') { true }
+  assert('') { true }
+  assert('') { true }
 end
 
 group('#group') do
   group('Can nest') do
-    fail { assert('Intentional failure') { false } }
+    fail; assert('Intentional failure') { false }
   end
 
   group('Can have classes as names') do
     group(String) do
-      fail { assert('Intentional failure') { false } }
+      fail; assert('Intentional failure') { false }
     end
   end
 end
 
 group('#error') do
-  fail { error('True assertions fail') { true } }
-  fail { error('False assertions fail') { false } }
-  pass { error('Errors pass') { raise IntendedError.new('SHOULD NOT BE SEEN') } }
+  fail; error('True errors fail', expect: StandardError) { true }
+  fail; error('False errors fail', expect: StandardError) { false }
 
-  err do
-    error('Unexpected errors fail', expect: NoMethodError) do
-      raise IntendedError.new('should expect different error')
-    end
+  err; error('Unexpected errors err', expect: NoMethodError) do
+    raise IntendedError.new('should expect different error')
   end
 
-  pass do
-    error('Expected errors pass', expect: IntendedError) do
-      raise IntendedError.new('SHOULD NOT BE SEEN')
-    end
+  pass; error('Expected errors pass', expect: IntendedError) do
+    raise IntendedError.new('SHOULD NOT BE SEEN')
   end
 end
+
+puts
+puts "Testing #puts between different results:"
+test_between { puts 'Test of #puts' }
+
+puts
+puts "Testing #p between different results:"
+test_between { p 'Test of #p' }
