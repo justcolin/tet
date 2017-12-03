@@ -1,6 +1,6 @@
 Gem::Specification.new do |s|
   s.name    = 'tet'
-  s.version = '1.5.1'
+  s.version = '2.0.0'
 
   s.summary     = "Barely a test framework"
   s.homepage    = 'https://github.com/justcolin/tet'
@@ -11,5 +11,5 @@ Gem::Specification.new do |s|
   s.license = 'BSD-3-Clause'
 
   s.files                 = ['lib/tet.rb', 'lib/tests.rb']
-  s.required_ruby_version = '>= 2.1.3'
+  s.required_ruby_version = '>= 2.4.0'
 end
